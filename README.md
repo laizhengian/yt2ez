@@ -1,6 +1,6 @@
-# YouTube to MP3 Converter
+# yt2ez
 
-A simple, local desktop app to download YouTube videos as MP3 files. Runs entirely on your device - no server needed.
+A simple, local desktop app to download YouTube videos as MP3 or MP4. Runs entirely on your device - no server needed.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ A simple, local desktop app to download YouTube videos as MP3 files. Runs entire
 ## Installation
 
 ```bash
-cd yt2mp3
+cd yt2ez
 pip install -r requirements.txt
 ```
 
@@ -27,24 +27,24 @@ python main.py
 ```
 
 1. Paste a YouTube URL
-2. Choose save location (defaults to `~/Music/YouTube MP3`)
-3. Click "Download MP3"
-4. Find your MP3 in the output folder
+2. Choose save location (defaults to `~/Music/yt2ez`)
+3. Select format: MP3 (audio only) or MP4 (video + audio)
+4. Click "Download"
+5. Find your file in the output folder
 
 ## Features
 
 - Clean, simple GUI
-- Downloads best quality audio
-- Converts to 192kbps MP3
+- Download MP3 (192kbps) or MP4 (best quality)
 - Remembers last download folder
 - Opens output folder when done
 - Runs completely offline (after initial yt-dlp install)
 
-## Building an Executable (Optional)
+## Building an Executable
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name "YouTube to MP3" main.py
+pyinstaller --onefile --windowed --name "yt2ez" main.py
 ```
 
 The `.exe` will be in `dist/`.
