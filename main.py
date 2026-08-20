@@ -32,10 +32,14 @@ class yt2ez:
         url_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(url_frame, text="Video URL:").pack(anchor=tk.W)
-        self.url_entry = ttk.Entry(url_frame, font=("Segoe UI", 10))
-        self.url_entry.pack(fill=tk.X, pady=(5, 0))
+        url_row = ttk.Frame(url_frame)
+        url_row.pack(fill=tk.X, pady=(5, 0))
+        
+        self.url_entry = ttk.Entry(url_row, font=("Segoe UI", 10))
+        self.url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.url_entry.bind("<Return>", lambda e: self.start_download())
-        self.url_entry.bind("<FocusOut>", lambda e: self.fetch_formats())
+        
+        ttk.Button(url_row, text="Fetch Qualities", command=self.fetch_formats).pack(side=tk.LEFT, padx=(5, 0))
         
         path_frame = ttk.Frame(main_frame)
         path_frame.pack(fill=tk.X, pady=(0, 10))
@@ -110,7 +114,9 @@ class yt2ez:
                 for f in formats:
                     if f.get("vcodec") != "none" and f.get("height"):
                         height = f["height"]
-                        if height not in video_formats or f.get("filesize", 0) > video_formats[height].get("filesize", 0):
+                        fs = f.get("filesize") or f.get("filesize_approx") or 0
+                        existing_fs = video_formats[height].get("filesize") or video_formats[height].get("filesize_approx") or 0 if height in video_formats else 0
+                        if height not in video_formats or fs > existing_fs:
                             video_formats[height] = f
                 
                 resolutions = sorted(video_formats.keys(), reverse=True)
