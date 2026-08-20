@@ -7,16 +7,18 @@ import subprocess
 import yt_dlp
 
 
-class YouTubeToMP3:
+class yt2ez:
     def __init__(self, root):
         self.root = root
-        self.root.title("YouTube Downloader")
-        self.root.geometry("540x460")
+        self.root.title("yt2ez")
+        self.root.geometry("540x520")
         self.root.resizable(False, False)
         
-        self.download_path = os.path.expanduser("~/Music/YouTube Downloads")
+        self.download_path = os.path.expanduser("~/Music/yt2ez")
         os.makedirs(self.download_path, exist_ok=True)
         self.download_format = "mp3"
+        self.available_formats = []
+        self.selected_resolution = "best"
         
         self.setup_ui()
         
@@ -24,7 +26,7 @@ class YouTubeToMP3:
         main_frame = ttk.Frame(self.root, padding="20")
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(main_frame, text="YouTube Downloader", font=("Segoe UI", 16, "bold")).pack(pady=(0, 20))
+        ttk.Label(main_frame, text="yt2ez", font=("Segoe UI", 16, "bold")).pack(pady=(0, 20))
         
         url_frame = ttk.Frame(main_frame)
         url_frame.pack(fill=tk.X, pady=(0, 10))
@@ -33,6 +35,7 @@ class YouTubeToMP3:
         self.url_entry = ttk.Entry(url_frame, font=("Segoe UI", 10))
         self.url_entry.pack(fill=tk.X, pady=(5, 0))
         self.url_entry.bind("<Return>", lambda e: self.start_download())
+        self.url_entry.bind("<FocusOut>", lambda e: self.fetch_formats())
         
         path_frame = ttk.Frame(main_frame)
         path_frame.pack(fill=tk.X, pady=(0, 10))
@@ -50,7 +53,15 @@ class YouTubeToMP3:
         
         self.format_var = tk.StringVar(value="mp3")
         ttk.Radiobutton(format_frame, text="MP3 (Audio only, 192kbps)", variable=self.format_var, value="mp3", command=self.on_format_change).pack(anchor=tk.W)
-        ttk.Radiobutton(format_frame, text="MP4 (Video + Audio, best quality)", variable=self.format_var, value="mp4", command=self.on_format_change).pack(anchor=tk.W, pady=(5, 0))
+        ttk.Radiobutton(format_frame, text="MP4 (Video + Audio)", variable=self.format_var, value="mp4", command=self.on_format_change).pack(anchor=tk.W, pady=(5, 0))
+        
+        self.resolution_frame = ttk.LabelFrame(main_frame, text="Video Quality", padding="10")
+        
+        ttk.Label(self.resolution_frame, text="Resolution:").pack(anchor=tk.W)
+        self.resolution_var = tk.StringVar(value="best")
+        self.resolution_combo = ttk.Combobox(self.resolution_frame, textvariable=self.resolution_var, state="readonly", width=30)
+        self.resolution_combo.pack(fill=tk.X, pady=(5, 0))
+        self.resolution_combo.bind("<<ComboboxSelected>>", self.on_resolution_change)
         
         self.progress = ttk.Progressbar(main_frame, mode="indeterminate")
         self.progress.pack(fill=tk.X, pady=(10, 5))
@@ -70,6 +81,49 @@ class YouTubeToMP3:
         fmt = self.format_var.get()
         self.download_format = fmt
         self.download_btn.config(text=f"Download {fmt.upper()}")
+        
+        if fmt == "mp4":
+            self.resolution_frame.pack(fill=tk.X, pady=(0, 10), before=self.progress.master.winfo_children()[self.progress.master.winfo_children().index(self.progress)])
+            self.fetch_formats()
+        else:
+            self.resolution_frame.pack_forget()
+            
+    def on_resolution_change(self, event=None):
+        self.selected_resolution = self.resolution_var.get()
+        
+    def fetch_formats(self):
+        url = self.url_entry.get().strip()
+        if not url or self.format_var.get() != "mp4":
+            return
+            
+        def fetch():
+            try:
+                ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                    formats = info.get("formats", [])
+                    
+                video_formats = {}
+                for f in formats:
+                    if f.get("vcodec") != "none" and f.get("height"):
+                        height = f["height"]
+                        if height not in video_formats or f.get("filesize", 0) > video_formats[height].get("filesize", 0):
+                            video_formats[height] = f
+                
+                resolutions = sorted(video_formats.keys(), reverse=True)
+                resolution_options = ["best (auto)"] + [f"{h}p" for h in resolutions]
+                
+                self.root.after(0, lambda: self.update_resolution_combo(resolution_options))
+            except Exception:
+                self.root.after(0, lambda: self.update_resolution_combo(["best (auto)"]))
+                
+        threading.Thread(target=fetch, daemon=True).start()
+        
+    def update_resolution_combo(self, options):
+        self.resolution_combo["values"] = options
+        if self.resolution_var.get() not in options:
+            self.resolution_var.set(options[0])
+        self.selected_resolution = self.resolution_var.get()
         
     def browse_path(self):
         path = filedialog.askdirectory(initialdir=self.download_path)
@@ -114,8 +168,15 @@ class YouTubeToMP3:
                     "no_warnings": True,
                 }
             else:
+                res = self.selected_resolution
+                if res == "best (auto)":
+                    format_spec = "bestvideo+bestaudio/best"
+                else:
+                    height = res.replace("p", "")
+                    format_spec = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                    
                 ydl_opts = {
-                    "format": "bestvideo+bestaudio/best",
+                    "format": format_spec,
                     "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
                     "merge_output_format": "mp4",
                     "quiet": True,
@@ -170,7 +231,7 @@ def main():
     style.theme_use("vista" if sys.platform == "win32" else "clam")
     style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"))
     
-    app = YouTubeToMP3(root)
+    app = yt2ez(root)
     root.mainloop()
 
 
