@@ -58,10 +58,11 @@ class yt2ez:
         self.resolution_frame = ttk.LabelFrame(main_frame, text="Video Quality", padding="10")
         
         ttk.Label(self.resolution_frame, text="Resolution:").pack(anchor=tk.W)
-        self.resolution_var = tk.StringVar(value="best")
+        self.resolution_var = tk.StringVar(value="best (auto)")
         self.resolution_combo = ttk.Combobox(self.resolution_frame, textvariable=self.resolution_var, state="readonly", width=30)
         self.resolution_combo.pack(fill=tk.X, pady=(5, 0))
         self.resolution_combo.bind("<<ComboboxSelected>>", self.on_resolution_change)
+        self.resolution_combo["values"] = ["best (auto)"]
         
         self.progress = ttk.Progressbar(main_frame, mode="indeterminate")
         self.progress.pack(fill=tk.X, pady=(10, 5))
@@ -77,13 +78,15 @@ class yt2ez:
         
         ttk.Button(btn_frame, text="Open Folder", command=self.open_folder).pack(side=tk.RIGHT, ipadx=20, ipady=8)
         
+        self.on_format_change()
+        
     def on_format_change(self):
         fmt = self.format_var.get()
         self.download_format = fmt
         self.download_btn.config(text=f"Download {fmt.upper()}")
         
         if fmt == "mp4":
-            self.resolution_frame.pack(fill=tk.X, pady=(0, 10), before=self.progress.master.winfo_children()[self.progress.master.winfo_children().index(self.progress)])
+            self.resolution_frame.pack(fill=tk.X, pady=(0, 10), before=self.progress)
             self.fetch_formats()
         else:
             self.resolution_frame.pack_forget()
