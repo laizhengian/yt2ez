@@ -7,6 +7,17 @@ import subprocess
 import yt_dlp
 
 
+def get_ffmpeg_path():
+    """Get path to bundled ffmpeg.exe"""
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller EXE
+        base_path = sys._MEIPASS
+    else:
+        # Running as Python script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, "ffmpeg.exe")
+
+
 class yt2ez:
     def __init__(self, root):
         self.root = root
@@ -19,6 +30,7 @@ class yt2ez:
         self.download_format = "mp3"
         self.available_formats = []
         self.selected_resolution = "best"
+        self.ffmpeg_path = get_ffmpeg_path()
         
         self.setup_ui()
         
@@ -105,7 +117,7 @@ class yt2ez:
             
         def fetch():
             try:
-                ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True}
+                ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True, "ffmpeg_location": self.ffmpeg_path}
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=False)
                     formats = info.get("formats", [])
@@ -179,6 +191,7 @@ class yt2ez:
                 "no_warnings": True,
                 "socket_timeout": 30,
                 "retries": 3,
+                "ffmpeg_location": self.ffmpeg_path,
             }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -207,6 +220,7 @@ class yt2ez:
                 "no_warnings": True,
                 "socket_timeout": 30,
                 "retries": 3,
+                "ffmpeg_location": self.ffmpeg_path,
             }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -230,29 +244,7 @@ class yt2ez:
         messagebox.showerror("Error", f"Download failed:\n{error}")
 
 
-def check_ffmpeg():
-    try:
-        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
-
-
 def main():
-    if not check_ffmpeg():
-        root = tk.Tk()
-        root.withdraw()
-        messagebox.showerror(
-            "FFmpeg Required",
-            "FFmpeg is not installed or not in PATH.\n\n"
-            "Please install FFmpeg:\n"
-            "• Windows: Download from https://ffmpeg.org/download.html\n"
-            "• macOS: brew install ffmpeg\n"
-            "• Linux: sudo apt install ffmpeg\n\n"
-            "Then restart this app."
-        )
-        return
-        
     root = tk.Tk()
     style = ttk.Style()
     style.theme_use("vista" if sys.platform == "win32" else "clam")
