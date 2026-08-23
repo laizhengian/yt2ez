@@ -177,6 +177,8 @@ class yt2ez:
                 }],
                 "quiet": True,
                 "no_warnings": True,
+                "socket_timeout": 30,
+                "retries": 3,
             }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -194,13 +196,17 @@ class yt2ez:
             else:
                 height = res.replace("p", "")
                 format_spec = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
-                
+            
+            print(f"MP4 format_spec: {format_spec}")  # Debug
+            
             ydl_opts = {
                 "format": format_spec,
                 "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
                 "merge_output_format": "mp4",
                 "quiet": True,
                 "no_warnings": True,
+                "socket_timeout": 30,
+                "retries": 3,
             }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -208,6 +214,7 @@ class yt2ez:
                 
             self.root.after(0, self.on_success)
         except Exception as e:
+            print(f"MP4 error: {e}")  # Debug
             self.root.after(0, lambda: self.on_error(f"MP4 download failed:\n{e}"))
             
     def on_success(self):
