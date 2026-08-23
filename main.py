@@ -159,45 +159,56 @@ class yt2ez:
         self.status_var.set("Downloading...")
         self.url_entry.delete(0, tk.END)
         
-        thread = threading.Thread(target=self.download_worker, args=(url,), daemon=True)
+        if self.download_format == "mp3":
+            thread = threading.Thread(target=self.download_mp3_worker, args=(url,), daemon=True)
+        else:
+            thread = threading.Thread(target=self.download_mp4_worker, args=(url,), daemon=True)
         thread.start()
         
-    def download_worker(self, url):
+    def download_mp3_worker(self, url):
         try:
-            if self.download_format == "mp3":
-                ydl_opts = {
-                    "format": "bestaudio/best",
-                    "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
-                    "postprocessors": [{
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "192",
-                    }],
-                    "quiet": True,
-                    "no_warnings": True,
-                }
-            else:
-                res = self.selected_resolution
-                if res == "best (auto)":
-                    format_spec = "bestvideo+bestaudio/best"
-                else:
-                    height = res.replace("p", "")
-                    format_spec = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
-                    
-                ydl_opts = {
-                    "format": format_spec,
-                    "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
-                    "merge_output_format": "mp4",
-                    "quiet": True,
-                    "no_warnings": True,
-                }
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }],
+                "quiet": True,
+                "no_warnings": True,
+            }
             
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
                 
             self.root.after(0, self.on_success)
         except Exception as e:
-            self.root.after(0, lambda: self.on_error(str(e)))
+            self.root.after(0, lambda: self.on_error(f"MP3 download failed:\n{e}"))
+            
+    def download_mp4_worker(self, url):
+        try:
+            res = self.selected_resolution
+            if res == "best (auto)":
+                format_spec = "bestvideo+bestaudio/best"
+            else:
+                height = res.replace("p", "")
+                format_spec = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+                
+            ydl_opts = {
+                "format": format_spec,
+                "outtmpl": os.path.join(self.download_path, "%(title)s.%(ext)s"),
+                "merge_output_format": "mp4",
+                "quiet": True,
+                "no_warnings": True,
+            }
+            
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+                
+            self.root.after(0, self.on_success)
+        except Exception as e:
+            self.root.after(0, lambda: self.on_error(f"MP4 download failed:\n{e}"))
             
     def on_success(self):
         self.progress.stop()
